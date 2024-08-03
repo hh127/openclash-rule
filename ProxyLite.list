@@ -4,6 +4,7 @@
 DOMAIN-SUFFIX,qichiyu.com
 DOMAIN-SUFFIX,docker.com
 DOMAIN-SUFFIX,vercel.app
+DOMAIN-SUFFIX,fsm.name
 
 # 域名关键字匹配
 DOMAIN-KEYWORD,1e100
