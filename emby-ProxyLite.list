@@ -1,11 +1,8 @@
 # emby代理列表
-# 米饭服
-# aca服
+# 米饭服（公费服），misakaf.org
+# aca服（机场服）emby.aca.best、porn.aca.best
 
 # MyList
 # 域名全匹配
-DOMAIN,stream1.misakaf.org
-DOMAIN,stream2.misakaf.org
-DOMAIN,stream3.misakaf.org
-DOMAIN,stream4.misakaf.org
 DOMAIN-SUFFIX,misakaf.org
+DOMAIN-SUFFIX,aca.best
