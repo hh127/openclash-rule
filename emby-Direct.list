@@ -1,6 +1,12 @@
 # emby直连列表
+# pron服（v服），
+# sptv.ii00.cc（vip porn资源）
+# sgtv.ii00.cc（vip general资源）
+# cn-music.mefun.vip （VIP Music资源）
+
 
 # MyList
 # 域名全匹配
-DOMAIN,sptv.ii00.cc
-DOMAIN,sgtv.ii00.cc
+DOMAIN-SUFFIX,sptv.ii00.cc
+DOMAIN-SUFFIX,sgtv.ii00.cc
+DOMAIN-SUFFIX,cn-music.mefun.vip
