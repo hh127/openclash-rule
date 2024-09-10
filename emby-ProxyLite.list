@@ -1,6 +1,6 @@
 # Apple
 # 一般国内Apple肯定正常,不需要开代理
-DOMAIN,apple.stream1.misakaf.org
-DOMAIN,apple.stream2.misakaf.org
-DOMAIN,apple.stream3.misakaf.org
-DOMAIN,apple.stream4.misakaf.org
+DOMAIN-SUFFIX,stream1.misakaf.org
+DOMAIN-SUFFIX,stream2.misakaf.org
+DOMAIN-SUFFIX,stream3.misakaf.org
+DOMAIN-SUFFIX,stream4.misakaf.org
