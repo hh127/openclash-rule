@@ -13,6 +13,7 @@ PROCESS-NAME,tailscaled,DIRECT #(tailscaled直连)
 DOMAIN-KEYWORD,baidu
 DOMAIN-KEYWORD,m-team
 DOMAIN-KEYWORD,iepose
+DOMAIN-KEYWORD,cscec7b
 
 # IP段匹配
 IP-CIDR,219.146.1.66/32,no-resolve
