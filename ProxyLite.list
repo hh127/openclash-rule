@@ -1,6 +1,7 @@
 # 代理补充列表
 # 域名匹配
 DOMAIN,www.aca.dog
+DOMAIN,zh.z-lib.gs
 
 # 域名后缀匹配
 DOMAIN-SUFFIX,qichiyu.com
