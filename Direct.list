@@ -5,6 +5,7 @@
 DOMAIN-SUFFIX,time.windows.com
 DOMAIN-SUFFIX,lanzov.com
 DOMAIN-SUFFIX,hao123.com
+DOMAIN-SUFFIX,cn.bing.com
 
 #匹配路由自身进程(tailscaled直连)
 PROCESS-NAME,tailscaled,DIRECT #(tailscaled直连)
