@@ -2,6 +2,7 @@
 # 域名匹配
 DOMAIN,www.aca.dog
 DOMAIN,zh.z-lib.gs
+DOMAIN,www.kugou8.cloud
 
 # 域名后缀匹配
 DOMAIN-SUFFIX,qichiyu.com
@@ -15,7 +16,7 @@ DOMAIN-KEYWORD,1e100
 DOMAIN-KEYWORD,tiaokan
 DOMAIN-KEYWORD,cunhua
 DOMAIN-KEYWORD,pornhub
-DOMAIN-KEYWORD,kugou
+
 
 
 # IP段匹配
