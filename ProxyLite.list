@@ -5,6 +5,11 @@ DOMAIN,zh.z-lib.gs
 DOMAIN,www.kugou8.cloud
 DOMAIN,emby.as174.de
 DOMAIN,www.bing.com
+DOMAIN,api.themoviedb.org
+DOMAIN,api.tmdb.org
+DOMAIN,api.thetvdb.com
+DOMAIN,api.themoviedb.org
+DOMAIN,api.telegram.org
 
 # 域名后缀匹配
 DOMAIN-SUFFIX,qichiyu.com
