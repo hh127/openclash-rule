@@ -3,7 +3,7 @@
 # 跑裸核用户请自行去掉下方控制面板模块的注释。
 # 机场订阅
 proxy-providers:
-  Airport1:
+  fac:
     url: "https://fm-sub-mainpanel-vygijfogpm.cn-shanghai.fcapp.run/api/v1/client/subscribe?token=6a7d6a4ac72fb3d641b831132d9cdd3f"
     type: http
     interval: 86400
@@ -113,6 +113,8 @@ proxy-groups:
   - {name: 🎥 NETFLIX, type: select, proxies: [🔯 狮城故转, 🔯 香港故转, 🔯 日本故转, 🔯 美国故转, ♻️ 香港自动, ♻️ 日本自动, ♻️ 狮城自动, ♻️ 美国自动, ♻️ 自动选择, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇸🇬 狮城节点, 🇺🇲 美国节点, 🌐 全部节点, 直连]}
   - {name: ✈️ Speedtest, type: select, proxies: [🔯 香港故转, 🔯 日本故转, 🔯 狮城故转, 🔯 美国故转, ♻️ 香港自动, ♻️ 日本自动, ♻️ 狮城自动, ♻️ 美国自动, ♻️ 自动选择, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇸🇬 狮城节点, 🇺🇲 美国节点, 🌐 全部节点, 直连]}
   - {name: 💶 PayPal, type: select, proxies: [🔯 日本故转, 🔯 香港故转, 🔯 狮城故转, 🔯 美国故转, ♻️ 香港自动, ♻️ 日本自动, ♻️ 狮城自动, ♻️ 美国自动, ♻️ 自动选择, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇸🇬 狮城节点, 🇺🇲 美国节点, 🌐 全部节点, 直连]}
+  - {name: 🎥 emby代理, type: select, proxies: [🔯 香港故转, 🔯 日本故转, 🔯 狮城故转, 🔯 美国故转, ♻️ 香港自动, ♻️ 日本自动, ♻️ 狮城自动, ♻️ 美国自动, ♻️ 自动选择, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇸🇬 狮城节点, 🇺🇲 美国节点, 🌐 全部节点, 直连]}
+  - {name: 🎥 emby直连, type: select, proxies: [直连, 🚀 默认代理]}
   - {name: 🍎 Apple, type: select, proxies: [直连, 🚀 默认代理]}
   - {name: 🎯 直连, type: select, proxies: [直连, 🚀 默认代理]}
   - {name: 🐟 漏网之鱼, type: select, proxies: [🔯 香港故转, 🔯 日本故转, 🔯 狮城故转, 🔯 美国故转, ♻️ 香港自动, ♻️ 日本自动, ♻️ 狮城自动, ♻️ 美国自动, ♻️ 自动选择, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇸🇬 狮城节点, 🇺🇲 美国节点, 🌐 全部节点, 直连]}
@@ -134,9 +136,11 @@ proxy-groups:
 # 规则匹配
 # 此规则部分没有做防泄露处理，因为弊严重大于利！
 rules:
-  - RULE-SET,private_domain,直连
+  - RULE-SET,private_domain,🎯 直连
   - RULE-SET,apple_domain,🍎 Apple
   - RULE-SET,proxylite,🚀 默认代理
+  - RULE-SET,embyproxyLite,🎥 emby代理
+  - RULE-SET,embydirect,🎥 emby直连
   - RULE-SET,ai,🤖 ChatGPT
   - RULE-SET,github_domain,👨🏿‍💻 GitHub
   - RULE-SET,youtube_domain,📹 YouTube
@@ -164,9 +168,11 @@ rule-anchor:
   domain: &domain {type: http, interval: 86400, behavior: domain, format: mrs}
   class: &class {type: http, interval: 86400, behavior: classical, format: text}
 rule-providers: 
-  private_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs"} #
+  private_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs"} #私有域名
   proxylite: { <<: *class, url: "https://raw.githubusercontent.com/hh127/openclash-rule/refs/heads/main/meta/ProxyLite.list"} #个人定制代理组
-  directlite: { <<: *class, url: "https://raw.githubusercontent.com/hh127/openclash-rule/refs/heads/main/meta/Direct.list"} #个人定制直连组  
+  directlite: { <<: *class, url: "https://raw.githubusercontent.com/hh127/openclash-rule/refs/heads/main/meta/Direct.list"} #个人定制直连组 
+  embydirect: { <<: *class, url: "https://raw.githubusercontent.com/hh127/openclash-rule/refs/heads/main/meta/emby-Direct.list"} #emby直连组
+  embyproxyLite: { <<: *class, url: "https://raw.githubusercontent.com/hh127/openclash-rule/refs/heads/main/meta/emby-ProxyLite.list"} #emby代理组
   ai: {  <<: *domain, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ai-!cn.mrs" }
   youtube_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs"}
   google_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs"}
