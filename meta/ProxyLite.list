@@ -5,11 +5,10 @@ DOMAIN,zh.z-lib.gs
 DOMAIN,www.kugou8.cloud
 DOMAIN,emby.as174.de
 DOMAIN,www.bing.com
-DOMAIN,api.themoviedb.org
 DOMAIN,api.tmdb.org
 DOMAIN,api.thetvdb.com
-DOMAIN,api.themoviedb.org
 DOMAIN,api.telegram.org
+DOMAIN,codeload.github.com
 
 # 域名后缀匹配
 DOMAIN-SUFFIX,qichiyu.com
@@ -27,6 +26,7 @@ DOMAIN-KEYWORD,asmrgay
 DOMAIN-KEYWORD,stashdb
 DOMAIN-KEYWORD,theporndb
 DOMAIN-KEYWORD,javstash
+DOMAIN-KEYWORD,themoviedb
 
 # IP段匹配
 IP-CIDR,142.171.133.131/32,no-resolve
