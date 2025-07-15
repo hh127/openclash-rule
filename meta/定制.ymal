@@ -18,26 +18,26 @@ proxies:
   - {name: 直连, type: direct}
 
 # 全局配置 
-port: 7890
-socks-port: 7891
-redir-port: 7892
-mixed-port: 7893
-tproxy-port: 7894
-allow-lan: true
-bind-address: "*"
-ipv6: false
-unified-delay: true
-tcp-concurrent: true
-log-level: warning
-find-process-mode: 'off'
+# port: 7890 # HTTP/HTTPS 代理端口，供浏览器或支持 HTTP 代理的程序使用
+# socks-port: 7891 # SOCKS5 代理端口，适用于支持 SOCKS 协议的程序（如 Telegram、某些下载工具等）
+# redir-port: 7892 # linux 系统的透明代理端口，用于将流量重定向tcp流量
+mixed-port: 7890 # 同时支持 HTTP、HTTPS 和 SOCKS5 的端口，供不支持 SOCKS5 的程序使用 
+# tproxy-port: 7894 # linux 系统的透明代理端口，用于将流量重定向到 TPROXY 模式
+allow-lan: true # 是否允许局域网设备访问代理服务
+bind-address: "*" # 绑定地址，默认为所有地址（
+ipv6: false # 是否启用 IPv6 支持
+unified-delay: true # 是否启用统一延迟测试
+tcp-concurrent: true # 是否启用 TCP 并发连接
+log-level: warning # 日志级别，支持：debug, info, warning, error, fatal
+find-process-mode: 'off' # 进程查找模式，off: 不查找，pid: 通过 pid 查找，name: 通过名称查找
 # interface-name: en0
-global-client-fingerprint: chrome
-keep-alive-idle: 600
-keep-alive-interval: 15
-disable-keep-alive: false
-profile:
-  store-selected: true
-  store-fake-ip: true
+global-client-fingerprint: chrome # 全局客户端指纹，支持：chrome, firefox, safari, edge, ie11, ios, android
+keep-alive-idle: 600 # 保持连接空闲时间，单位为秒
+keep-alive-interval: 15 # 保持连接间隔时间，单位为秒
+disable-keep-alive: false # 是否禁用保持连接
+profile: # 配置文件路径，默认为空
+  store-selected: true # 是否存储选中的代理组
+  store-fake-ip: true # 是否存储 Fake IP 地址
 
 # 控制面板，external-ui 路径如果出现报错，根据你使用的插件进行调整，比如openclash改为： /etc/openclash/run  ，裸核跑改为/etc/mihomo/run
 # 因容易造成新手面板启动问题，我注释掉了，需要的自行开启
