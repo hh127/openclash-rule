@@ -9,6 +9,7 @@ DOMAIN,api.tmdb.org
 DOMAIN,api.thetvdb.com
 DOMAIN,api.telegram.org
 DOMAIN,codeload.github.com
+DOMAIN,raw.githubusercontent.com
 
 # 域名后缀匹配
 DOMAIN-SUFFIX,qichiyu.com
