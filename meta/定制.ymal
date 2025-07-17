@@ -12,6 +12,33 @@ proxy-providers:
       url: https://www.gstatic.com/generate_204
       interval: 300
     proxy: 直连
+  kugou:
+    url: "https://www22.kugou2.cloud/api/v1/zh-cn/download?token=6d78849b62b6a9c34668fdfd81ca3d25"
+    type: http
+    interval: 86400
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 300
+    proxy: 直连
+  flowcast:
+    url: "https://s1.sdh1yhd1flowcast.site/api/v1/client/subscribe?token=6794b9432be957ed350c4e4dd82103c6"
+    type: http
+    interval: 86400
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 300
+    proxy: ♻️ 自动选择
+  wjkc:
+    url: "https://wjkc66.vip/api/subscript/clash/6877d623441041711bf42a14/cf205271-b448-4de1-bd2c-56c757b6079a"
+    type: http
+    interval: 86400
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 300
+    proxy: ♻️ 自动选择
 
 # 节点信息
 proxies:
@@ -48,6 +75,7 @@ profile: # 配置文件路径，默认为空
 #external-ui-url: "https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip"
 external-controller: 0.0.0.0:9096
 external-ui: ui
+secret: "3i!W#NKUUcoCYiqu*d3T"
 #external-ui-url: "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip"
 
 #自定义 geodata url
@@ -135,6 +163,7 @@ proxy-groups:
   - {name: 🇯🇵 日本节点, type: select, include-all: true, filter: "(?i)日|jp|japan"}
   - {name: 🇸🇬 新加坡节点, type: select, include-all: true, filter: "(?i)新加坡|坡|狮城|SG|Singapore"}
   - {name: 🇺🇲 美国节点, type: select, include-all: true, filter: "(?i)美|us|unitedstates|united states"}
+  - {name: 🇩🇪 德国, type: select, use: [kugou,flowcast], filter: "(?i)德|德国|de|germany"}
   - {name: 🔯 香港故转, type: fallback, include-all: true, tolerance: 20, interval: 300, filter: "(?=.*(港|HK|(?i)Hong))^((?!(台|日|韩|新|深|美)).)*$"}
   - {name: 🔯 日本故转, type: fallback, include-all: true, tolerance: 20, interval: 300, filter: "(?=.*(日|JP|(?i)Japan))^((?!(港|台|韩|新|美)).)*$" }
   - {name: 🔯 新加坡故转, type: fallback, include-all: true, tolerance: 20, interval: 300, filter: "(?=.*(新加坡|坡|狮城|SG|Singapore))^((?!(台|日|韩|深|美)).)*$"}
@@ -152,6 +181,9 @@ rules:
   - DOMAIN-SUFFIX,themoviedb.org,♻️ 新加坡自动 # nas服务定制
   - DOMAIN-SUFFIX,tmdb.org,♻️ 新加坡自动 # nas服务定制
   - DOMAIN-SUFFIX,thetvdb.com,♻️ 新加坡自动 # nas服务定制
+  - DOMAIN-KEYWORD,stashdb,🇩🇪 德国 # 
+  - DOMAIN-KEYWORD,theporndb,🇩🇪 德国 #
+  - DOMAIN-KEYWORD,javstash,🇩🇪 德国 #
   - RULE-SET,directlite,🎯 直连
   - RULE-SET,private_domain,🎯 直连
   - RULE-SET,apple_domain,🍎 Apple
