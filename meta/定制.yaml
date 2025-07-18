@@ -2,6 +2,7 @@
 # 注意规则在满足自己需求情况下，尽量做到精简，不要过度复杂，以免影响性能。
 # 跑裸核用户请自行去掉下方控制面板模块的注释。
 # 机场订阅
+
 proxy-providers:
   fac:
     url: "https://fm-sub-mainpanel-vygijfogpm.cn-shanghai.fcapp.run/api/v1/client/subscribe?token=6a7d6a4ac72fb3d641b831132d9cdd3f"
