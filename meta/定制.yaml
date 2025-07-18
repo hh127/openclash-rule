@@ -190,7 +190,7 @@ proxy-groups:
   - {name: 魔戒机场-长期, type: select, use: [mojie], filter: "^((?!(最新|重置|官网|地名|套餐)).)*$"}
   - {name: 网际快车机场-长期, type: select, use: [wjkc], filter: "^((?!(最新|剩余|重置|官网|地名|套餐)).)*$"}
   - {name: 🌐 全部节点, type: select, include-all: true, filter: "^((?!(最新|剩余|重置|官网|地名|套餐)).)*$"}
-  - {name: ♻️ IPEL自动选择, type: url-test, include-all: true, filter: "(?=.*((?i)IEPL))^((?!(最新|剩余|重置|官网|地名|套餐)).)*$"}
+
 
 # 规则匹配
 # 此规则部分没有做防泄露处理，因为弊严重大于利！
