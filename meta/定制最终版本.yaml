@@ -32,7 +32,7 @@ proxy-providers:
       interval: 300
     proxy: ♻️ 高速自动选择
   wjkc:
-    url: "https://wjkc66.vip/api/subscript/flclash/6877d623441041711bf42a14/15c4f6ba-f54b-446f-9bbd-97da8af0c35d"
+    url: "https://wjkc.click/api/subscript/flclash/6877d623441041711bf42a14/b0666498-bd5a-43fb-8702-15e938876c4b"
     type: http
     interval: 86400
     health-check:
