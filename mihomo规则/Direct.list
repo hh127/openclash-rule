@@ -596,3 +596,10 @@ DOMAIN-SUFFIX,zhipin.com
 DOMAIN-SUFFIX,zhongsou.com
 DOMAIN-SUFFIX,zhuihd.com
 
+# wps直连
+DOMAIN-SUFFIX,wps.cn
+DOMAIN-SUFFIX,wpscdn.cn
+DOMAIN-SUFFIX,kingsoft.com
+DOMAIN-SUFFIX,ksosoft.com
+DOMAIN-SUFFIX,wps.com
+DOMAIN-SUFFIX,iciba.com
