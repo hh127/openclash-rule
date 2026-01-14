@@ -35,12 +35,15 @@ jobs:
             
             output_file="${file%.list}.mrs"
             
-            # 修复点：添加了 'mrs' 参数
-            # 语法: ./mihomo convert-ruleset <behavior> <format> <source> <target>
-            if ./mihomo convert-ruleset classical mrs "$file" "$output_file"; then
+            # 关键修改：
+            # 参数 2 从 'mrs' 改为 'text'
+            # 含义：使用 classical 行为，读取 text 格式的源文件，输出到 output_file
+            if ./mihomo convert-ruleset classical text "$file" "$output_file"; then
               echo "✅ 转换成功 -> $output_file"
             else
               echo "❌ 转换失败: $file"
+              # 打印文件头几行帮助 debug（如果失败的话）
+              head -n 5 "$file"
             fi
           done
 
