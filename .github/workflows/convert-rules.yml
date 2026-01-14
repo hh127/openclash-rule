@@ -1,6 +1,5 @@
 name: Auto Convert List to MRS
 
-# 触发机制：当 list 文件变动，或手动点击触发
 on:
   push:
     paths:
@@ -10,7 +9,6 @@ on:
 jobs:
   convert-rules:
     runs-on: ubuntu-latest
-    # 必须赋予写权限，否则无法上传生成的 mrs 文件
     permissions:
       contents: write
 
@@ -20,40 +18,37 @@ jobs:
 
       - name: Setup Mihomo Core
         run: |
-          echo "⬇️ 正在下载 Mihomo 内核..."
-          # 下载 v1.18.1 版本 (和你日志里的一致)
           wget https://github.com/MetaCubeX/mihomo/releases/download/v1.18.1/mihomo-linux-amd64-v1.18.1.gz -O mihomo.gz
-          
-          echo "⚙️ 解压并赋予执行权限..."
           gunzip mihomo.gz
           chmod +x mihomo
-          
-          # 验证版本，确保下载成功
-          ./mihomo -v
 
-      - name: Convert Files
+      - name: Convert Files (Recursive)
         run: |
-          echo "🔄 开始转换..."
+          echo "🔍 正在全仓库搜索 .list 文件..."
           
-          # 查找当前目录下所有的 .list 文件
-          for file in *.list; do
-            # 如果没有找到 list 文件，跳过
-            [ -e "$file" ] || continue
+          # 使用 find 命令查找当前目录及子目录下所有的 .list 文件
+          find . -type f -name "*.list" | while read -r file; do
+            echo "----------------------------------------"
+            echo "📄 发现文件: $file"
             
-            # 获取不带后缀的文件名 (例如 ad.list -> ad)
-            filename="${file%.*}"
+            # 生成对应的 mrs 文件名 (保持原有路径)
+            # 例如 ./rules/ad.list -> ./rules/ad.mrs
+            output="${file%.*}.mrs"
             
-            echo "正在处理: $file -> $filename.mrs"
+            echo "⚡ 正在转换: $file -> $output"
             
-            # 【关键】这里是单行命令，绝对不要换行
-            # 默认使用 'domain' 类型。如果你的是 IP 列表，请把下面的 domain 改为 ipcidr
-            ./mihomo convert-ruleset domain "$file" "$filename.mrs"
+            # 同样，如果是IP列表，请把 domain 改为 ipcidr
+            ./mihomo convert-ruleset domain "$file" "$output"
+            
+            if [ -f "$output" ]; then
+                echo "✅ 生成成功: $output"
+            else
+                echo "❌ 生成失败!"
+            fi
           done
-          
-          echo "✅ 所有文件处理完毕。"
 
       - name: Commit and Push Changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: auto convert list to mrs [skip ci]"
-          file_pattern: '*.mrs'
+          commit_message: "chore: update mrs files [skip ci]"
+          file_pattern: '**.mrs' # 提交所有目录下的 mrs 文件
