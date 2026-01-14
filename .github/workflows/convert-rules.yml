@@ -1,44 +1,59 @@
-name: Convert Ruleset to MRS
+name: Auto Convert List to MRS
 
-# 触发条件：当 list 文件发生变化时触发
+# 触发机制：当 list 文件变动，或手动点击触发
 on:
   push:
     paths:
-      - '**.list'  # 监听所有 .list 文件的变动
-      - '**.yaml'  # 如果你的源文件是 yaml 也可以加上
-  workflow_dispatch: # 允许手动触发
+      - '**.list'
+  workflow_dispatch:
 
 jobs:
-  convert:
+  convert-rules:
     runs-on: ubuntu-latest
+    # 必须赋予写权限，否则无法上传生成的 mrs 文件
     permissions:
-      contents: write # 需要写入权限来提交生成的 mrs 文件
+      contents: write
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Download Mihomo Core
+      - name: Setup Mihomo Core
         run: |
-          # 下载最新的 Mihomo内核 (Linux版本)
-          # 注意：这里使用的是 Alpha 分支，你也可以改为稳定版 Release 链接
+          echo "⬇️ 正在下载 Mihomo 内核..."
+          # 下载 v1.18.1 版本 (和你日志里的一致)
           wget https://github.com/MetaCubeX/mihomo/releases/download/v1.18.1/mihomo-linux-amd64-v1.18.1.gz -O mihomo.gz
+          
+          echo "⚙️ 解压并赋予执行权限..."
           gunzip mihomo.gz
           chmod +x mihomo
+          
+          # 验证版本，确保下载成功
+          ./mihomo -v
 
-      - name: Convert List to MRS
+      - name: Convert Files
         run: |
-          # 语法: ./mihomo convert-ruleset <类型> <源文件> <输出文件>
-          # <类型> 通常是 domain (域名) 或 ipcidr (IP段) 或 classic (混合)
+          echo "🔄 开始转换..."
           
-          # 示例：假设你的文件叫 my-rules.list，且是域名列表
-          ./mihomo convert-ruleset domain ./my-rules.list ./my-rules.mrs
+          # 查找当前目录下所有的 .list 文件
+          for file in *.list; do
+            # 如果没有找到 list 文件，跳过
+            [ -e "$file" ] || continue
+            
+            # 获取不带后缀的文件名 (例如 ad.list -> ad)
+            filename="${file%.*}"
+            
+            echo "正在处理: $file -> $filename.mrs"
+            
+            # 【关键】这里是单行命令，绝对不要换行
+            # 默认使用 'domain' 类型。如果你的是 IP 列表，请把下面的 domain 改为 ipcidr
+            ./mihomo convert-ruleset domain "$file" "$filename.mrs"
+          done
           
-          # 如果你有多个文件，可以在这里继续添加命令
-          # ./mihomo convert-ruleset ipcidr ./cn-ip.list ./cn-ip.mrs
+          echo "✅ 所有文件处理完毕。"
 
-      - name: Commit and Push changes
+      - name: Commit and Push Changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto convert ruleset to MRS [skip ci]"
-          file_pattern: '*.mrs' # 只提交生成的 mrs 文件
+          commit_message: "chore: auto convert list to mrs [skip ci]"
+          file_pattern: '*.mrs'
