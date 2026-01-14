@@ -16,12 +16,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Mihomo Kernel
+      - name: Setup Mihomo Kernel (Stable)
         run: |
-          echo "Fetching latest Mihomo Alpha..."
-          # 获取最新的 Alpha 版本链接
-          LATEST_URL=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/Prerelease-Alpha | grep "browser_download_url" | grep "linux-amd64-alpha" | grep ".gz" | head -n 1 | cut -d '"' -f 4)
+          echo "Fetching latest Stable Mihomo..."
+          # 【修复点1】使用 releases/latest 获取最新的稳定版，而不是 Alpha 版
+          # 稳定版通常更可靠，不会出现莫名的空指针崩溃
+          LATEST_URL=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep "browser_download_url" | grep "linux-amd64-v" | grep ".gz" | head -n 1 | cut -d '"' -f 4)
           
+          if [ -z "$LATEST_URL" ]; then
+            echo "❌ 获取下载链接失败，尝试使用固定版本 v1.19.3"
+            LATEST_URL="https://github.com/MetaCubeX/mihomo/releases/download/v1.19.3/mihomo-linux-amd64-v1.19.3.gz"
+          fi
+
           echo "Downloading from $LATEST_URL"
           wget -q "$LATEST_URL" -O mihomo.gz
           gzip -d mihomo.gz
@@ -30,7 +36,6 @@ jobs:
 
       - name: Recursively Convert Files
         run: |
-          # 遍历所有 .list 文件
           find . -type f -name "*.list" -not -path "*/.git/*" | while read -r file; do
             echo "----------------------------------------"
             echo "🔍 处理文件: $file"
@@ -38,48 +43,49 @@ jobs:
             output_file="${file%.list}.mrs"
             temp_file="temp_clean.list"
 
-            # === 强力清洗管道 (Cleaning Pipeline) ===
-            # 1. cat "$file"      : 读取源文件
-            # 2. tr -d '\r'       : 【关键】去除 Windows 回车符 (CRLF -> LF)
-            # 3. sed 's/#.*//g'   : 【关键】去除所有 `#` 及其后面的内容（包括中文备注、行内注释）
-            # 4. awk ...          : 【关键】只提取前两列 (Type,Value)，丢弃 ,DIRECT, ,no-resolve 等后缀
-            # 5. grep ...         : 去除空行
+            # === 白名单清洗管道 ===
+            # 1. tr -d '\r': 去除 Windows 换行
+            # 2. sed 's/#.*//g': 去除注释
+            # 3. awk ...: 只保留前两列
+            # 4. grep -E ...: 【修复点2】只允许 DOMAIN 和 IP 开头的规则通过
+            #    (过滤掉 PROCESS-NAME，因为它不支持 MRS 格式，会导致转换器报错)
             
             cat "$file" | tr -d '\r' | sed 's/#.*//g' | awk -F, '{
-              # 去除 $1 和 $2 的前后空格
               gsub(/^[ \t]+|[ \t]+$/, "", $1); 
               gsub(/^[ \t]+|[ \t]+$/, "", $2); 
-              
-              # 只有当 Type 和 Value 都有值时才输出
-              # 这样可以自动过滤掉空行或格式错误的行
               if ($1 != "" && $2 != "") {
                 print $1","$2
               }
-            }' > "$temp_file"
+            }' | grep -E "^(DOMAIN|IP-CIDR|SRC-IP-CIDR|GEOIP|GEOSITE|CLASSICAL)" > "$temp_file"
 
-            # 检查清洗后的文件是否为空
+            # 检查文件是否为空
             if [ ! -s "$temp_file" ]; then
-              echo "⚠️  跳过: 文件清洗后为空 (可能是纯注释文件) -> $file"
+              echo "⚠️  跳过: 有效规则为空 -> $file"
               rm "$temp_file"
               continue
             fi
 
             # 执行转换
-            # 语法: ./mihomo convert-ruleset classical text <源文件> <输出文件>
+            # 如果是稳定版，语法可能不需要 'text' 参数，或者仍然兼容。
+            # 我们先尝试带 'text' 参数 (v1.18+ 标准)
             if ./mihomo convert-ruleset classical text "$temp_file" "$output_file"; then
               echo "✅ 转换成功 -> $output_file"
             else
-              echo "❌ 转换失败: $file"
-              echo "--- 调试：清洗后的文件内容 (前10行) ---"
-              head -n 10 "$temp_file"
+              echo "⚠️ 第一次尝试失败，尝试不带 'text' 参数 (兼容旧版本语法)..."
+              if ./mihomo convert-ruleset classical "$temp_file" "$output_file"; then
+                 echo "✅ 转换成功 (兼容模式) -> $output_file"
+              else
+                 echo "❌ 转换失败: $file"
+                 echo "--- 调试内容 ---"
+                 head -n 5 "$temp_file"
+              fi
             fi
             
-            # 删除临时文件
             rm "$temp_file"
           done
 
       - name: Commit and Push MRS files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto-convert: Update MRS rule files [skip ci]"
+          commit_message: "Auto-convert: Update MRS rule files (Stable Build) [skip ci]"
           file_pattern: '**/*.mrs'
