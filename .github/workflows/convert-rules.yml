@@ -22,33 +22,45 @@ jobs:
           gunzip mihomo.gz
           chmod +x mihomo
 
-      - name: Convert Files (Recursive)
+      - name: Convert Files (Safe Mode)
         run: |
-          echo "🔍 正在全仓库搜索 .list 文件..."
+          echo "🔍 正在搜索 list 文件..."
           
-          # 使用 find 命令查找当前目录及子目录下所有的 .list 文件
+          # 查找所有 list 文件
           find . -type f -name "*.list" | while read -r file; do
             echo "----------------------------------------"
-            echo "📄 发现文件: $file"
+            echo "📄 处理文件: $file"
             
-            # 生成对应的 mrs 文件名 (保持原有路径)
-            # 例如 ./rules/ad.list -> ./rules/ad.mrs
+            # 计算目标文件名 (例如 ./mihomo规则/ad.list -> ./mihomo规则/ad.mrs)
             output="${file%.*}.mrs"
             
-            echo "⚡ 正在转换: $file -> $output"
+            # 【关键步骤】
+            # 为了防止中文路径导致命令失效，先复制到根目录变成纯英文文件名
+            cp "$file" temp_input.list
             
-            # 同样，如果是IP列表，请把 domain 改为 ipcidr
-            ./mihomo convert-ruleset domain "$file" "$output"
+            echo "⚡ 正在转换 (使用临时文件规避路径问题)..."
             
-            if [ -f "$output" ]; then
-                echo "✅ 生成成功: $output"
+            # 这里的命令只操作 temp_input.list，绝对不会出错
+            # 注意：如果你的规则全是IP，请把 domain 改为 ipcidr
+            ./mihomo convert-ruleset domain temp_input.list temp_output.mrs
+            
+            # 检查是否生成成功
+            if [ -f "temp_output.mrs" ]; then
+                # 把生成的临时文件移动到目标位置
+                mv temp_output.mrs "$output"
+                echo "✅ 成功生成: $output"
             else
-                echo "❌ 生成失败!"
+                echo "❌ 转换失败，未生成文件"
+                # 如果失败，打印一下错误日志方便调试，但不要卡死流程
+                exit 1 
             fi
+            
+            # 清理临时输入文件
+            rm temp_input.list
           done
 
       - name: Commit and Push Changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: update mrs files [skip ci]"
-          file_pattern: '**.mrs' # 提交所有目录下的 mrs 文件
+          file_pattern: '**.mrs'
