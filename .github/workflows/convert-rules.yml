@@ -1,113 +1,67 @@
-name: Auto Convert List to MRS (Final)
+name: Convert All Rules to MRS
 
+# 触发机制：
+# 1. 任意 .list 文件发生 push 时触发
+# 2. 支持手动点击触发 (workflow_dispatch)
 on:
   push:
     paths:
-      - '**.list'
+      - '**/*.list'
   workflow_dispatch:
 
 jobs:
-  convert-rules:
+  convert:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # 必须权限：允许提交生成的文件
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Download Mihomo Core
-        # 先用 Shell 下载内核，比较方便
+      - name: Setup Mihomo Kernel
         run: |
-          echo "⬇️ 正在下载 Mihomo..."
-          wget -q https://github.com/MetaCubeX/mihomo/releases/download/v1.18.3/mihomo-linux-amd64-v1.18.3.gz -O mihomo.gz
-          gunzip mihomo.gz
+          # 1. 获取 Mihomo Alpha 最新版下载链接 (Alpha版通常包含最新的转换逻辑)
+          echo "Fetching latest Mihomo Alpha URL..."
+          LATEST_URL=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/Prerelease-Alpha | grep "browser_download_url" | grep "linux-amd64-alpha" | grep ".gz" | head -n 1 | cut -d '"' -f 4)
+          
+          # 2. 下载并解压
+          echo "Downloading from $LATEST_URL"
+          wget -q "$LATEST_URL" -O mihomo.gz
+          gzip -d mihomo.gz
           chmod +x mihomo
+          
+          # 3. 验证版本
           ./mihomo -v
 
-      - name: Run Conversion Script
-        # 【重点】这里直接指定 shell: python，不需要 cat 生成文件了
-        shell: python
+      - name: Recursively Convert Files
         run: |
-          import os
-          import subprocess
-          import shutil
+          # find 命令解释：
+          # .             : 从当前根目录开始
+          # -type f       : 只查找文件
+          # -name "*.list": 文件名匹配 .list
+          # -not -path    : 排除 .git 文件夹
+          
+          find . -type f -name "*.list" -not -path "*/.git/*" | while read -r file; do
+            echo "----------------------------------------"
+            echo "🔍 发现规则文件: $file"
+            
+            # 计算输出文件名：把 .list 换成 .mrs
+            output_file="${file%.list}.mrs"
+            
+            # 执行转换
+            # 使用 'classical' 模式，它能完美处理你提供的带有 DOMAIN-SUFFIX/IP-CIDR 前缀的混合内容
+            if ./mihomo convert-ruleset classical "$file" "$output_file"; then
+              echo "✅ 转换成功 -> $output_file"
+            else
+              echo "❌ 转换失败: $file"
+              # 失败不阻断流程，继续处理下一个文件
+            fi
+          done
 
-          print("🚀 Python 脚本开始运行...")
-
-          # 1. 扫描所有 .list 文件
-          list_files = []
-          for root, dirs, files in os.walk("."):
-              for file in files:
-                  if file.endswith(".list"):
-                      # 排除掉生成的临时文件，防止死循环
-                      if "temp_" not in file:
-                          list_files.append(os.path.join(root, file))
-
-          print(f"🔍 一共找到 {len(list_files)} 个 list 文件")
-
-          if len(list_files) == 0:
-              print("⚠️ 未找到任何文件，脚本结束")
-              exit(0)
-
-          # 2. 循环转换
-          success_count = 0
-          for file_path in list_files:
-              print("-" * 40)
-              print(f"📄 正在处理: {file_path}")
-
-              # 准备临时文件名 (避免中文路径问题)
-              temp_input = "temp_input.list"
-              temp_output = "temp_output.mrs"
-              
-              # 复制源文件 -> 临时文件
-              shutil.copy(file_path, temp_input)
-
-              # === 智能判断类型 (可选) ===
-              # 简单的逻辑：如果文件名包含 "ip"，就用 ipcidr，否则用 domain
-              # 你也可以全部强制用 domain
-              rule_type = "domain"
-              if "ip" in os.path.basename(file_path).lower():
-                  rule_type = "ipcidr"
-                  print(f"   ⚙️ 检测到文件名包含 ip，模式设定为: {rule_type}")
-              else:
-                  print(f"   ⚙️ 默认模式: {rule_type}")
-
-              # 构造命令
-              cmd = ["./mihomo", "convert-ruleset", rule_type, temp_input, temp_output]
-
-              # 执行命令 (input=b'' 用于防止 mihomo 读取 stdin 卡死)
-              try:
-                  result = subprocess.run(cmd, capture_output=True, input=b'')
-                  
-                  if result.returncode == 0 and os.path.exists(temp_output):
-                      # 计算最终 mrs 文件路径
-                      target_mrs = os.path.splitext(file_path)[0] + ".mrs"
-                      shutil.move(temp_output, target_mrs)
-                      print(f"✅ 转换成功! 生成文件: {target_mrs}")
-                      success_count += 1
-                  else:
-                      print(f"❌ 转换失败!")
-                      print(f"   STDERR: {result.stderr.decode().strip()}")
-                      print(f"   STDOUT: {result.stdout.decode().strip()}")
-
-              except Exception as e:
-                  print(f"❌ 运行异常: {str(e)}")
-
-              # 清理当前循环的临时文件
-              if os.path.exists(temp_input): os.remove(temp_input)
-              if os.path.exists(temp_output): os.remove(temp_output)
-
-          print("=" * 40)
-          print(f"🎉 任务总结: 成功转换 {success_count} / {len(list_files)} 个文件")
-
-      - name: Commit and Push Changes
+      - name: Commit and Push MRS files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: auto convert list to mrs [skip ci]"
-          file_pattern: '**.mrs'
+          commit_message: "Auto-convert: Update MRS rule files [skip ci]"
+          # 这里的 **/*.mrs 会匹配所有目录下的 mrs 文件
+          file_pattern: '**/*.mrs'
