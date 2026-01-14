@@ -1,4 +1,4 @@
-name: Auto Convert List to MRS
+name: Auto Convert List to MRS (Docker)
 
 on:
   push:
@@ -16,51 +16,48 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Mihomo Core
+      - name: Convert using Docker
         run: |
-          wget https://github.com/MetaCubeX/mihomo/releases/download/v1.18.1/mihomo-linux-amd64-v1.18.1.gz -O mihomo.gz
-          gunzip mihomo.gz
-          chmod +x mihomo
-
-      - name: Convert Files (Safe Mode)
-        run: |
-          echo "🔍 正在搜索 list 文件..."
+          echo "🐳 准备使用 Docker 环境..."
+          
+          # 拉取官方最新镜像 (使用 alpine 版体积小)
+          docker pull metacubex/mihomo:alpha
+          
+          echo "🔍 正在搜索并转换..."
           
           # 查找所有 list 文件
-          find . -type f -name "*.list" | while read -r file; do
+          # 使用 process substitution 避免管道吞掉 stdin
+          while IFS= read -r file; do
             echo "----------------------------------------"
             echo "📄 处理文件: $file"
             
-            # 计算目标文件名 (例如 ./mihomo规则/ad.list -> ./mihomo规则/ad.mrs)
-            output="${file%.*}.mrs"
+            # 1. 为了避开中文路径地雷，复制到根目录临时文件
+            cp "$file" input_temp.list
             
-            # 【关键步骤】
-            # 为了防止中文路径导致命令失效，先复制到根目录变成纯英文文件名
-            cp "$file" temp_input.list
+            # 2. 运行 Docker 进行转换
+            # --rm: 跑完即删容器
+            # -v $(pwd):/data: 把当前仓库挂载到容器的 /data 目录
+            # 这里的命令绝对纯净，不会受外部环境干扰
+            docker run --rm -v "$(pwd):/data" metacubex/mihomo:alpha \
+              convert-ruleset domain /data/input_temp.list /data/output_temp.mrs
             
-            echo "⚡ 正在转换 (使用临时文件规避路径问题)..."
-            
-            # 这里的命令只操作 temp_input.list，绝对不会出错
-            # 注意：如果你的规则全是IP，请把 domain 改为 ipcidr
-            ./mihomo convert-ruleset domain temp_input.list temp_output.mrs
-            
-            # 检查是否生成成功
-            if [ -f "temp_output.mrs" ]; then
-                # 把生成的临时文件移动到目标位置
-                mv temp_output.mrs "$output"
-                echo "✅ 成功生成: $output"
+            # 3. 检查并移回文件
+            if [ -f "output_temp.mrs" ]; then
+                target_mrs="${file%.*}.mrs"
+                mv output_temp.mrs "$target_mrs"
+                echo "✅ 转换成功: $target_mrs"
             else
-                echo "❌ 转换失败，未生成文件"
-                # 如果失败，打印一下错误日志方便调试，但不要卡死流程
-                exit 1 
+                echo "❌ 转换失败!"
+                exit 1
             fi
             
-            # 清理临时输入文件
-            rm temp_input.list
-          done
+            # 清理输入临时文件
+            rm input_temp.list
+            
+          done < <(find . -type f -name "*.list")
 
       - name: Commit and Push Changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: update mrs files [skip ci]"
+          commit_message: "chore: convert list to mrs via docker [skip ci]"
           file_pattern: '**.mrs'
