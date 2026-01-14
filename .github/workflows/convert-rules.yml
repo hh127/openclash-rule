@@ -18,10 +18,8 @@ jobs:
 
       - name: Setup Mihomo Kernel
         run: |
-          echo "Fetching latest Mihomo Alpha URL..."
+          echo "Fetching latest Mihomo Alpha..."
           LATEST_URL=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/Prerelease-Alpha | grep "browser_download_url" | grep "linux-amd64-alpha" | grep ".gz" | head -n 1 | cut -d '"' -f 4)
-          
-          echo "Downloading from $LATEST_URL"
           wget -q "$LATEST_URL" -O mihomo.gz
           gzip -d mihomo.gz
           chmod +x mihomo
@@ -31,20 +29,45 @@ jobs:
         run: |
           find . -type f -name "*.list" -not -path "*/.git/*" | while read -r file; do
             echo "----------------------------------------"
-            echo "🔍 发现规则文件: $file"
+            echo "Processing: $file"
             
             output_file="${file%.list}.mrs"
+            temp_file="temp_clean.list"
+
+            # === 强力清洗管道 ===
+            # 1. tr -d '\r'       : 去除 Windows 换行符
+            # 2. sed 's/#.*//g'   : 【关键】将每一行 # 及其后面的内容全部删掉（去除中文行内备注）
+            # 3. awk -F, ...      : 以逗号分隔，只取前两列(类型,值)，并去除前后空格
+            # 4. grep -vE '^\s*$' : 去除处理后变为空的行
             
-            # 关键修改：
-            # 参数 2 从 'mrs' 改为 'text'
-            # 含义：使用 classical 行为，读取 text 格式的源文件，输出到 output_file
-            if ./mihomo convert-ruleset classical text "$file" "$output_file"; then
+            cat "$file" | tr -d '\r' | sed 's/#.*//g' | awk -F, '{
+              # 去除 $1 和 $2 的前后空格
+              gsub(/^[ \t]+|[ \t]+$/, "", $1); 
+              gsub(/^[ \t]+|[ \t]+$/, "", $2); 
+              # 只有当两列都有值时才输出
+              if ($1 != "" && $2 != "") {
+                print $1","$2
+              }
+            }' > "$temp_file"
+
+            # 检查清洗后是否还有内容
+            if [ ! -s "$temp_file" ]; then
+              echo "⚠️  跳过: 清洗后文件为空 ($file)"
+              rm "$temp_file"
+              continue
+            fi
+
+            # 执行转换
+            if ./mihomo convert-ruleset classical text "$temp_file" "$output_file"; then
               echo "✅ 转换成功 -> $output_file"
             else
               echo "❌ 转换失败: $file"
-              # 打印文件头几行帮助 debug（如果失败的话）
-              head -n 5 "$file"
+              # 失败时打印清洗后的内容，方便排查
+              echo "--- Debug: Cleaned Content (Top 5 lines) ---"
+              head -n 5 "$temp_file"
             fi
+            
+            rm "$temp_file"
           done
 
       - name: Commit and Push MRS files
