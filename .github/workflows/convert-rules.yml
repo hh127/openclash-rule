@@ -1,4 +1,4 @@
-name: Auto Convert List to MRS (Docker Fixed)
+name: Auto Convert List to MRS (Python)
 
 on:
   push:
@@ -16,50 +16,82 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Convert using Docker
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Convert Rules
         run: |
-          echo "🐳 准备拉取官方镜像..."
+          # 创建并运行 Python 脚本
+          cat << 'EOF' > convert.py
+          import os
+          import subprocess
+          import shutil
+          import glob
+
+          # 1. 下载并解压 Mihomo
+          print("⬇️  正在下载 Mihomo 内核...")
+          subprocess.run("wget -q https://github.com/MetaCubeX/mihomo/releases/download/v1.18.3/mihomo-linux-amd64-v1.18.3.gz -O mihomo.gz", shell=True)
+          subprocess.run("gunzip mihomo.gz", shell=True)
+          subprocess.run("chmod +x mihomo", shell=True)
+
+          if not os.path.exists("./mihomo"):
+              print("❌ Mihomo 下载失败")
+              exit(1)
+
+          print("✅ Mihomo 准备就绪")
+
+          # 2. 查找所有 .list 文件 (递归)
+          list_files = []
+          for root, dirs, files in os.walk("."):
+              for file in files:
+                  if file.endswith(".list"):
+                      list_files.append(os.path.join(root, file))
+
+          print(f"🔍 找到 {len(list_files)} 个 list 文件")
+
+          # 3. 开始转换
+          for file_path in list_files:
+              print("-" * 30)
+              print(f"📄 处理文件: {file_path}")
+              
+              # 构造临时文件名 (纯英文，避免路径乱码)
+              temp_input = "temp_input.list"
+              temp_output = "temp_output.mrs"
+              
+              # 复制源文件到临时文件
+              shutil.copy(file_path, temp_input)
+              
+              # 执行转换命令
+              # 注意：input=b'' 是为了切断 stdin，防止卡死
+              # 如果你的规则全是 IP，请把 'domain' 改为 'ipcidr'
+              cmd = ["./mihomo", "convert-ruleset", "domain", temp_input, temp_output]
+              
+              result = subprocess.run(cmd, capture_output=True, input=b'')
+              
+              if result.returncode == 0 and os.path.exists(temp_output):
+                  # 计算目标路径
+                  target_mrs = os.path.splitext(file_path)[0] + ".mrs"
+                  shutil.move(temp_output, target_mrs)
+                  print(f"✅ 转换成功 -> {target_mrs}")
+              else:
+                  print(f"❌ 转换失败: {file_path}")
+                  print(f"错误信息: {result.stderr.decode()}")
+
+              # 清理临时文件
+              if os.path.exists(temp_input):
+                  os.remove(temp_input)
+
+          print("-" * 30)
+          print("🎉 所有任务完成")
+          EOF
           
-          # 使用 GitHub Container Registry (官方源)，确保标签存在
-          docker pull ghcr.io/metacubex/mihomo:latest
-          
-          echo "🔍 正在搜索并转换..."
-          
-          # 查找所有 list 文件
-          # 使用 process substitution 避免管道问题
-          while IFS= read -r file; do
-            echo "----------------------------------------"
-            echo "📄 处理文件: $file"
-            
-            # 1. 复制为临时文件 (规避中文路径)
-            cp "$file" input_temp.list
-            
-            # 2. 运行 Docker 进行转换
-            # -v $(pwd):/data  挂载当前目录
-            # < /dev/null      关键！防止 mihomo 偷吃 stdin 导致卡死
-            
-            docker run --rm -i -v "$(pwd):/data" ghcr.io/metacubex/mihomo:latest \
-              convert-ruleset domain /data/input_temp.list /data/output_temp.mrs < /dev/null
-            
-            # 3. 检查并移回文件
-            if [ -f "output_temp.mrs" ]; then
-                target_mrs="${file%.*}.mrs"
-                mv output_temp.mrs "$target_mrs"
-                echo "✅ 转换成功: $target_mrs"
-            else
-                echo "❌ 转换失败!"
-                # 打印一下文件列表看看有没有生成奇怪的东西
-                ls -lh
-                exit 1
-            fi
-            
-            # 清理临时文件
-            rm input_temp.list
-            
-          done < <(find . -type f -name "*.list")
+          # 执行上面的脚本
+          python convert.py
 
       - name: Commit and Push Changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: update mrs files [skip ci]"
+          commit_message: "chore: update mrs files via python [skip ci]"
           file_pattern: '**.mrs'
