@@ -19,7 +19,10 @@ jobs:
       - name: Setup Mihomo Kernel
         run: |
           echo "Fetching latest Mihomo Alpha..."
+          # 获取最新的 Alpha 版本链接
           LATEST_URL=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/Prerelease-Alpha | grep "browser_download_url" | grep "linux-amd64-alpha" | grep ".gz" | head -n 1 | cut -d '"' -f 4)
+          
+          echo "Downloading from $LATEST_URL"
           wget -q "$LATEST_URL" -O mihomo.gz
           gzip -d mihomo.gz
           chmod +x mihomo
@@ -27,46 +30,51 @@ jobs:
 
       - name: Recursively Convert Files
         run: |
+          # 遍历所有 .list 文件
           find . -type f -name "*.list" -not -path "*/.git/*" | while read -r file; do
             echo "----------------------------------------"
-            echo "Processing: $file"
+            echo "🔍 处理文件: $file"
             
             output_file="${file%.list}.mrs"
             temp_file="temp_clean.list"
 
-            # === 强力清洗管道 ===
-            # 1. tr -d '\r'       : 去除 Windows 换行符
-            # 2. sed 's/#.*//g'   : 【关键】将每一行 # 及其后面的内容全部删掉（去除中文行内备注）
-            # 3. awk -F, ...      : 以逗号分隔，只取前两列(类型,值)，并去除前后空格
-            # 4. grep -vE '^\s*$' : 去除处理后变为空的行
+            # === 强力清洗管道 (Cleaning Pipeline) ===
+            # 1. cat "$file"      : 读取源文件
+            # 2. tr -d '\r'       : 【关键】去除 Windows 回车符 (CRLF -> LF)
+            # 3. sed 's/#.*//g'   : 【关键】去除所有 `#` 及其后面的内容（包括中文备注、行内注释）
+            # 4. awk ...          : 【关键】只提取前两列 (Type,Value)，丢弃 ,DIRECT, ,no-resolve 等后缀
+            # 5. grep ...         : 去除空行
             
             cat "$file" | tr -d '\r' | sed 's/#.*//g' | awk -F, '{
               # 去除 $1 和 $2 的前后空格
               gsub(/^[ \t]+|[ \t]+$/, "", $1); 
               gsub(/^[ \t]+|[ \t]+$/, "", $2); 
-              # 只有当两列都有值时才输出
+              
+              # 只有当 Type 和 Value 都有值时才输出
+              # 这样可以自动过滤掉空行或格式错误的行
               if ($1 != "" && $2 != "") {
                 print $1","$2
               }
             }' > "$temp_file"
 
-            # 检查清洗后是否还有内容
+            # 检查清洗后的文件是否为空
             if [ ! -s "$temp_file" ]; then
-              echo "⚠️  跳过: 清洗后文件为空 ($file)"
+              echo "⚠️  跳过: 文件清洗后为空 (可能是纯注释文件) -> $file"
               rm "$temp_file"
               continue
             fi
 
             # 执行转换
+            # 语法: ./mihomo convert-ruleset classical text <源文件> <输出文件>
             if ./mihomo convert-ruleset classical text "$temp_file" "$output_file"; then
               echo "✅ 转换成功 -> $output_file"
             else
               echo "❌ 转换失败: $file"
-              # 失败时打印清洗后的内容，方便排查
-              echo "--- Debug: Cleaned Content (Top 5 lines) ---"
-              head -n 5 "$temp_file"
+              echo "--- 调试：清洗后的文件内容 (前10行) ---"
+              head -n 10 "$temp_file"
             fi
             
+            # 删除临时文件
             rm "$temp_file"
           done
 
