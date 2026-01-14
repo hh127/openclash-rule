@@ -1,4 +1,4 @@
-name: Auto Convert List to MRS (Docker)
+name: Auto Convert List to MRS (Docker Fixed)
 
 on:
   push:
@@ -18,28 +18,28 @@ jobs:
 
       - name: Convert using Docker
         run: |
-          echo "🐳 准备使用 Docker 环境..."
+          echo "🐳 准备拉取官方镜像..."
           
-          # 拉取官方最新镜像 (使用 alpine 版体积小)
-          docker pull metacubex/mihomo:alpha
+          # 使用 GitHub Container Registry (官方源)，确保标签存在
+          docker pull ghcr.io/metacubex/mihomo:latest
           
           echo "🔍 正在搜索并转换..."
           
           # 查找所有 list 文件
-          # 使用 process substitution 避免管道吞掉 stdin
+          # 使用 process substitution 避免管道问题
           while IFS= read -r file; do
             echo "----------------------------------------"
             echo "📄 处理文件: $file"
             
-            # 1. 为了避开中文路径地雷，复制到根目录临时文件
+            # 1. 复制为临时文件 (规避中文路径)
             cp "$file" input_temp.list
             
             # 2. 运行 Docker 进行转换
-            # --rm: 跑完即删容器
-            # -v $(pwd):/data: 把当前仓库挂载到容器的 /data 目录
-            # 这里的命令绝对纯净，不会受外部环境干扰
-            docker run --rm -v "$(pwd):/data" metacubex/mihomo:alpha \
-              convert-ruleset domain /data/input_temp.list /data/output_temp.mrs
+            # -v $(pwd):/data  挂载当前目录
+            # < /dev/null      关键！防止 mihomo 偷吃 stdin 导致卡死
+            
+            docker run --rm -i -v "$(pwd):/data" ghcr.io/metacubex/mihomo:latest \
+              convert-ruleset domain /data/input_temp.list /data/output_temp.mrs < /dev/null
             
             # 3. 检查并移回文件
             if [ -f "output_temp.mrs" ]; then
@@ -48,10 +48,12 @@ jobs:
                 echo "✅ 转换成功: $target_mrs"
             else
                 echo "❌ 转换失败!"
+                # 打印一下文件列表看看有没有生成奇怪的东西
+                ls -lh
                 exit 1
             fi
             
-            # 清理输入临时文件
+            # 清理临时文件
             rm input_temp.list
             
           done < <(find . -type f -name "*.list")
@@ -59,5 +61,5 @@ jobs:
       - name: Commit and Push Changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: convert list to mrs via docker [skip ci]"
+          commit_message: "chore: update mrs files [skip ci]"
           file_pattern: '**.mrs'
