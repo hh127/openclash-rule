@@ -3,7 +3,7 @@ name: Convert Rulesets to MRS
 on:
   push:
     paths:
-      - '**.list'
+      - 'mihomo-rule/*.list' # 监控你存放 list 文件的文件夹
   workflow_dispatch:
 
 jobs:
@@ -15,7 +15,7 @@ jobs:
 
       - name: Install Mihomo
         run: |
-          # 获取最新的 mihomo 核心
+          # 下载最新的 Mihomo 核心
           MIHOMO_URL=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep "browser_download_url.*linux-amd64-compatible" | cut -d '"' -f 4 | head -n 1)
           curl -L -o mihomo.gz "$MIHOMO_URL"
           gunzip -c mihomo.gz > mihomo
@@ -24,29 +24,31 @@ jobs:
       - name: Convert Lists to MRS
         run: |
           mkdir -p mrs
-          # 遍历仓库中所有的 .list 文件
-          find . -name "*.list" | while read file; do
+          # 遍历指定目录下的所有 .list 文件
+          find ./mihomo-rule -name "*.list" | while read file; do
             filename=$(basename "$file" .list)
-            filepath=$(dirname "$file")
             
-            # 逻辑判断：根据文件名判断转换类型
-            if [[ "$filename" == *"domains"* ]]; then
-              TYPE="domain"
-            elif [[ "$filename" == *"ip"* ]]; then
+            echo "Processing $file..."
+            
+            # 1. 数据清洗 (最重要的步骤)
+            # - 删除前缀: DOMAIN-SUFFIX, DOMAIN, IP-CIDR, etc.
+            # - 删除后缀: ,DIRECT, ,no-resolve, etc.
+            # - 删除注释行和空格
+            temp_file="${filename}_clean.txt"
+            sed -E 's/^(DOMAIN-SUFFIX|DOMAIN-KEYWORD|DOMAIN|IP-CIDR|IP-CIDR6|PROCESS-NAME),//g' "$file" | \
+            sed -E 's/,(DIRECT|no-resolve)//g' | \
+            sed 's/ //g' | grep -v '^#' | grep -v '^$' > "$temp_file"
+
+            # 2. 逻辑判断转换类型
+            # 根据你提供的命名规则：文件名含 ip 为 ipcidr，含 domains 或其他为 domain
+            if [[ "$filename" == *"ip"* ]]; then
               TYPE="ipcidr"
             else
-              # 默认兜底使用 domain，或者跳过
-              TYPE="domain" 
+              TYPE="domain"
             fi
             
-            echo "Converting $file as $TYPE..."
-            ./mihomo convert-ruleset "$TYPE" text "$file" "./mrs/${filename}.mrs"
-          done
-
-      - name: Commit and Push
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add ./mrs/*.mrs
-          git commit -m "Auto-convert to MRS: ${GITHUB_SHA::7}" || echo "No changes to commit"
-          git push
+            # 3. 执行转换 (检查清洗后文件是否为空，防止 panic)
+            if [ -s "$temp_file" ]; then
+              echo "Executing: ./mihomo convert-ruleset $TYPE text $temp_file ./mrs/${filename}.mrs"
+              ./mihomo convert-ruleset "$TYPE" text "$temp_file" "./mrs/${filename}.mrs"
+            else
